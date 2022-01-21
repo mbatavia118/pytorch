@@ -53,6 +53,11 @@ constexpr DynamicTypeBits kDynamicClassTypeBit = DYNAMIC_TYPE_BIT(10);
   _(Storage, DYNAMIC_TYPE_BIT(16), 1)                                        \
   _(Var, DYNAMIC_TYPE_BIT(17), 0)                                            \
   _(AnyClass, (kDynamicClassTypeBit | kDynamicAnyTypeBit), 1)                \
+  _(QScheme, DYNAMIC_TYPE_BIT(18), 1)                                        \
+  _(Quantizer, DYNAMIC_TYPE_BIT(19), 1)                                      \
+  _(AnyEnum, DYNAMIC_TYPE_BIT(20), 1)                                        \
+  _(RRef, DYNAMIC_TYPE_BIT(21), 0)                                           \
+  _(Future, DYNAMIC_TYPE_BIT(22), 0)                                         \
   _(Any, 0xffffffff, 1)
 
 class DynamicType;
@@ -188,7 +193,7 @@ class DynamicType : public SharedType {
 
 template <typename T>
 struct DynamicTypeTrait {
-  static auto tagValue() {
+  C10_NOINLINE static auto tagValue() {
     TORCH_CHECK(false);
     return DynamicType::Tag::Any;
   }
@@ -201,7 +206,7 @@ C10_NOINLINE DynamicTypePtr makeBaseType(DynamicType::Tag tag);
 #define DYNAMIC_TYPE_TAG_VALUE(NAME, _, IS_BASE_TYPE)      \
   template <>                                              \
   struct TORCH_API DynamicTypeTrait<NAME##Type> {          \
-    static auto tagValue() {                               \
+    C10_ERASE static auto tagValue() {                     \
       return DynamicType::Tag::NAME;                       \
     }                                                      \
     static constexpr bool isBaseType = IS_BASE_TYPE;       \

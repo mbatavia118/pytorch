@@ -1,8 +1,10 @@
 #pragma once
 
+#include <type_traits>
+
 #include <ATen/core/dynamic_type.h>
 #include <ATen/core/jit_type.h>
-#include <type_traits>
+#include <c10/macros/Macros.h>
 
 namespace c10 {
 
@@ -29,6 +31,17 @@ struct TORCH_API DynamicTypeFactory {
         name,
         c10::DynamicType::Arguments(fields, types));
   }
+  template <typename T>
+  C10_ERASE static c10::DynamicTypePtr createNamed(const std::string& name) {
+    return std::make_shared<c10::DynamicType>(
+        c10::DynamicTypeTrait<T>::tagValue(),
+        name,
+        c10::DynamicType::Arguments{});
+  }
+  template <typename T>
+  C10_ERASE static c10::DynamicTypePtr get() {
+    return DynamicTypeTrait<T>::getBaseType();
+  }
   static const std::unordered_map<std::string, c10::TypePtr>& basePythonTypes();
 };
 
@@ -36,15 +49,15 @@ struct TORCH_API DynamicTypeFactory {
 template <
     typename T,
     std::enable_if_t<DynamicTypeTrait<T>::isBaseType, int> = 0>
-DynamicTypePtr dynT() {
-  return DynamicTypeTrait<T>::getBaseType();
+C10_ERASE DynamicTypePtr dynT() {
+  return DynamicTypeFactory::get<T>();
 }
 
 template <
     typename T,
     typename... Args,
     std::enable_if_t<!DynamicTypeTrait<T>::isBaseType, int> = 0>
-DynamicTypePtr dynT(Args&&... args) {
+C10_ERASE DynamicTypePtr dynT(Args&&... args) {
   return DynamicTypeFactory::create<T>(std::forward<Args>(args)...);
 }
 
@@ -63,7 +76,15 @@ struct TORCH_API DefaultTypeFactory {
       const std::vector<c10::TypePtr>& types) {
     return c10::TupleType::createNamed(name, fields, types);
   }
+  template <typename T>
+  C10_ERASE static c10::TypePtr createNamed(const std::string& name) {
+    return T::create(name);
+  }
   static const std::unordered_map<std::string, c10::TypePtr>& basePythonTypes();
+  template <typename T>
+  C10_ERASE static c10::TypePtr get() {
+    return T::get();
+  }
 };
 
 using TypeFactory =
